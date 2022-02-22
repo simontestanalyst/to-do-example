@@ -25,6 +25,10 @@ class TestBase(TestCase):
         db.session.remove()
         db.drop_all()
 
+    class MyTest(TestCase):
+
+        pass
+'''
 class TestViews(TestBase):
     # Test whether we get a successful response from our routes
     def test_home_get(self):
@@ -90,3 +94,4 @@ class TestDelete(TestBase):
             follow_redirects=True
         )
         self.assertNotIn(b"Run unit tests", response.data)
+        '''
