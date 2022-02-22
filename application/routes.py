@@ -1,68 +1,73 @@
-from flask import render_template, url_for, redirect, request
 from application import app, db
-from application.models import Todos
-from application.forms import TodoForm, OrderTodo
+from application.models import Tasks
+from application.forms import TaskForm
+from flask import render_template, request, redirect, url_for
+from os import getenv
 
+if getenv("CREATE_SCHEMA") == "true":
+    db.drop_all()
+    db.create_all()
 
-@app.route('/', methods=['POST', 'GET'])
-def index():
-    form = OrderTodo()
-    totals = {
-        "total": Todos.query.count(),
-        "total_completed": Todos.query.filter_by(complete=True).count()
-    }
-    if form.order_with.data == "id":
-        todos = Todos.query.order_by(Todos.id.desc()).all()
-    elif form.order_with.data == "complete":
-        todos = Todos.query.order_by(Todos.complete.desc()).all()
-    elif form.order_with.data == "incomplete":
-        todos = Todos.query.order_by(Todos.complete).all()
-    else:
-        todos = Todos.query.all()
-    return render_template('index.html', title="Todo List App", todos=todos, form=form, totals=totals)
+@app.route('/')
+@app.route('/home')
+def home():
+    all_tasks = Tasks.query.all()
+    return render_template('index.html', title="Home", all_tasks=all_tasks)
 
-@app.route('/add', methods=['POST', 'GET'])
-def add():
-    form = TodoForm()
-    if form.validate_on_submit():
-        todo = Todos(
-            task = form.task.data,
-            complete = False
+@app.route('/create/task', methods=['GET','POST'])
+def create_task():
+    form = TaskForm()
+
+    if request.method == "POST":
+        new_task = Tasks(description=form.description.data)
+        db.session.add(new_task)
+        db.session.commit()
+        return redirect(url_for('home'))
+
+    return render_template("create_task.html", title="Add a new Task", form=form)
+
+@app.route('/read/allTasks')
+def read_tasks():
+    all_tasks = Tasks.query.all()
+    tasks_dict = {"tasks": []}
+    for task in all_tasks:
+        tasks_dict["tasks"].append(
+            {
+                "description": task.description,
+                "completed": task.completed
+            }
         )
-        db.session.add(todo)
+    return tasks_dict
+
+@app.route('/update/task/<int:id>', methods=['GET','POST'])
+def update_task(id):
+    form = TaskForm()
+    task = Tasks.query.get(id)
+
+    if request.method == "POST":
+        task.description = form.description.data
         db.session.commit()
-        return redirect(url_for('index'))
-    return render_template('add.html', title="Add a new todo", form=form)
+        return redirect(url_for('home'))
 
-@app.route('/complete/<int:id>')
-def complete(id):
-    todo = Todos.query.get(id)
-    todo.complete = True
+    return render_template('update_task.html', task=task, form=form)
+
+@app.route('/delete/task/<int:id>')
+def delete_task(id):
+    task = Tasks.query.get(id)
+    db.session.delete(task)
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('home'))
 
-@app.route('/incomplete/<int:id>')
-def incomplete(id):
-    todo = Todos.query.get(id)
-    todo.complete = False
+@app.route('/complete/task/<int:id>')
+def complete_task(id):
+    task = Tasks.query.get(id)
+    task.completed = True
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('home'))
 
-@app.route('/update/<int:id>', methods=['GET', 'POST'])
-def update(id):
-    form = TodoForm()
-    todo = Todos.query.get(id)
-    if form.validate_on_submit():
-        todo.task = form.task.data
-        db.session.commit()
-        redirect(url_for('index'))
-    elif request.method == 'GET':
-        form.task.data = todo.task
-    return render_template('update.html', title='Update your todo', form=form)
-
-@app.route('/delete/<int:id>')
-def delete(id):
-    todo = Todos.query.get(id)
-    db.session.delete(todo)
+@app.route('/incomplete/task/<int:id>')
+def incomplete_task(id):
+    task = Tasks.query.get(id)
+    task.completed = False
     db.session.commit()
-    return redirect(url_for('index'))
+    return redirect(url_for('home'))

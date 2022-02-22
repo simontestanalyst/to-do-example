@@ -1,8 +1,6 @@
 from application import db
 
-class Todos(db.Model):
+class Tasks(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-
-    task = db.Column(db.String(30), unique=True)
-
-    complete = db.Column(db.Boolean, default=False)
+    description = db.Column(db.String(30), nullable=False)
+    completed = db.Column(db.Boolean, nullable=False, default=False)
