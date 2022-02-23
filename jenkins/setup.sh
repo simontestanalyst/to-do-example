@@ -12,3 +12,5 @@ source venv/bin/activate
 
 # install our pip requirements (from requirements.txt)
 pip3 install -r requirements.txt
+
+# test
